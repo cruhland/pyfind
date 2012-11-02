@@ -96,18 +96,18 @@ files/glove/receipt
 </ul>
 <p>The following functions might be useful for providing the missing pieces for your algorithm. You will not need all of them, but you should read their documentation to help you decide which to use:</p>
 <ul>
-<li><a href="http://docs.python.org/2/library/os.html#os.chdir">os.chdir(path)</a></li>
-<li><a href="http://docs.python.org/2/library/os.html#os.getcwd">os.getcwd()</a></li>
-<li><a href="http://docs.python.org/2/library/os.html#os.listdir">os.listdir(path)</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.abspath">os.path.abspath(path)</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.basename">os.path.basename(path)</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.dirname">os.path.dirname(path)</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.isfile">os.path.isfile(path)</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.isdir">os.path.isdir(path)</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.join">os.path.join(path1[, path2[, ...]])</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.normpath">os.path.normpath(path)</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.relpath">os.path.relpath(path[, start])</a></li>
-<li><a href="http://docs.python.org/2/library/os.path.html#os.path.split">os.path.split(path)</a></li>
+<li><a href="http://docs.python.org/2/library/os.html#os.chdir"><code>os.chdir(path)</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.html#os.getcwd"><code>os.getcwd()</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.html#os.listdir"><code>os.listdir(path)</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.abspath"><code>os.path.abspath(path)</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.basename"><code>os.path.basename(path)</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.dirname"><code>os.path.dirname(path)</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.isfile"><code>os.path.isfile(path)</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.isdir"><code>os.path.isdir(path)</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.join"><code>os.path.join(path1[, path2[, ...]])</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.normpath"><code>os.path.normpath(path)</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.relpath"><code>os.path.relpath(path[, start])</code></a></li>
+<li><a href="http://docs.python.org/2/library/os.path.html#os.path.split"><code>os.path.split(path)</code></a></li>
 </ul>
 <p>Now we have everything we need to write our recursive directory-printing function in <code>find.py</code>. It should take the name of the directory to print as an argument. Call it on the directory name that you obtained using <code>argparse</code> in the previous chapter. To test your code, you can run the following commands:</p>
 <pre><code>$ find files &gt; find.txt
@@ -122,6 +122,99 @@ $ diff find.txt pyfind.txt</code></pre>
     if os.path.isdir(full_path):
         for name in os.listdir(full_path):
             visit(name, full_path)</code></pre>
+</div>
+
+<h2 id="chapter-6-actually-finding-things-with-find">Chapter 6: Actually finding things with <code>find</code></h2>
+<p>Now that our PyFind program is able to look at all the files and directories in a directory tree, we can add the ability to print out only the paths that meet criteria specified on the command line. One of the simplest criteria is <em>type</em>, i.e., does the path represent a file or a directory?</p>
+<p>We can use the functions <code>os.path.isfile(path)</code> and <code>os.path.isdir(path)</code> to detect whether a path is a file or a directory. It's a little less clear how we might modify our recursive directory tree function to use these functions to only print files or directories. One approach would be to create two new recursive functions:</p>
+<pre><code>def visit_files(file_name, base_path=&quot;&quot;):
+    full_path = os.path.join(base_path, file_name)
+    if os.path.isfile(full_path):
+        print full_path
+    if os.path.isdir(full_path):
+        for name in os.listdir(full_path):
+            visit_files(name, full_path)
+
+def visit_directories(file_name, base_path=&quot;&quot;):
+    full_path = os.path.join(base_path, file_name)
+    if os.path.isdir(full_path):
+        print full_path
+    if os.path.isdir(full_path):
+        for name in os.listdir(full_path):
+            visit_directories(name, full_path)</code></pre>
+<p>This is not a maintainable solution. Most of the code in these functions is the same, so if we ever want to modify the way in which we visit the directories, we will have to remember to change it in both functions. What if we could combine these two functions into a single one that does the same thing, if given the right arguments? It turns out that we can, although it might be difficult to see at first.</p>
+<p>The process of combining similar pieces of code together into a single more general piece of code is called <em>abstraction</em>. Usually, creating an abstraction involves these steps:</p>
+<ol style="list-style-type: decimal">
+<li>Identify the common parts between the pieces of code being combined</li>
+<li>The remaining parts are what is different between the pieces of code</li>
+<li>Replace each different part with a variable name</li>
+<li>Wrap the code in a function that has the variable as a parameter (or if the pieces of code are already functions, just add a new parameter to them)</li>
+</ol>
+<p>Try to follow these steps and combine the <code>visit_files</code> and <code>visit_directories</code> functions into a single <code>visit_matching</code> function. See below for a hint and the solution.</p>
+Hint:
+<div class="spoilers">
+The <code>visit_matching</code> function will need to take a function as an argument.
+</div>
+
+Solution:
+<div class="spoilers">
+
+<pre><code>def visit_matching(file_name, matches, base_path=&quot;&quot;):
+    full_path = os.path.join(base_path, file_name)
+    if matches(full_path):
+        print full_path
+    if os.path.isdir(full_path):
+        for name in os.listdir(full_path):
+            visit_matching(name, matches, full_path)</code></pre>
+</div>
+
+<p>With our new abstraction, we can search for files using</p>
+<pre><code>visit_matching(&#39;files&#39;, os.path.isfile)</code></pre>
+<p>and search for directories using</p>
+<pre><code>visit_matching(&#39;files&#39;, os.path.isdir)</code></pre>
+<p>However, our original <code>visit</code> function is almost identical to <code>visit_matching</code>. Try to figure out what matching function we should pass to <code>visit_matching</code> to make it do the same thing as <code>visit</code>. Answer below.</p>
+<div class="spoilers">
+
+<pre><code>visit_matching(&#39;files&#39;, lambda path: True)</code></pre>
+</div>
+
+<p>Now we can replace the call to our original recursive directory function in <code>find.py</code> with a call to <code>visit_matching</code>. However, we still need give PyFind users the ability to filter by file type from the command line. This means we need to improve our <code>argparse</code> code.</p>
+<p>Here's how to get the Unix <code>find</code> command to list files only and directories only, respectively:</p>
+<pre><code>$ find files -type f
+$ find files -type d</code></pre>
+<p>This is an example of an <em>optional argument</em>, so called because you do not need to specify it. The optional argument has its own argument that indicates which type we want to find. We can add the following line to our <code>argparse</code> code in <code>find.py</code> to get this working for PyFind:</p>
+<pre><code>parser.add_argument(&quot;-type&quot;, help=&quot;filter by type&quot;, choices=[&#39;d&#39;, &#39;f&#39;])</code></pre>
+<p>If you parse the arguments as <code>args = parser.parse_args()</code>, then the argument to the <code>-type</code> option will be available as <code>args.type</code>. Modify your code so that <code>-type f</code> and <code>-type d</code> behave in the same way as they do for the Unix <code>find</code> command. Test your code using <code>diff</code> as before, and try passing invalid arguments to see what error messages you get.</p>
+<p>After this chapter, here's an example of what your <code>find.py</code> file should contain:</p>
+<div class="spoilers">
+
+<pre><code>import argparse
+import os
+
+def main():
+    parser = argparse.ArgumentParser(description=&quot;Find files&quot;)
+    parser.add_argument(&quot;directory&quot;, help=&quot;the directory to search&quot;)
+    parser.add_argument(&quot;-type&quot;, help=&quot;filter by type&quot;, choices=[&#39;d&#39;, &#39;f&#39;])
+    args = parser.parse_args()
+
+    matching = lambda path: True
+    if args.type == &#39;f&#39;:
+        matching = os.path.isfile
+    elif args.type == &#39;d&#39;:
+        matching = os.path.isdir
+
+    visit_matching(args.directory, matching)
+
+def visit_matching(file_name, matches, base_path=&quot;&quot;):
+    full_path = os.path.join(base_path, file_name)
+    if matches(full_path):
+        print full_path
+    if os.path.isdir(full_path):
+        for name in os.listdir(full_path):
+            visit_matching(name, matches, full_path)
+
+if __name__ == &#39;__main__&#39;:
+    main()</code></pre>
 </div>
 
 </body>

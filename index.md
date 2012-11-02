@@ -179,18 +179,18 @@ The following functions might be useful for providing the missing
 pieces for your algorithm. You will not need all of them, but you
 should read their documentation to help you decide which to use:
 
-- [os.chdir(path)](http://docs.python.org/2/library/os.html#os.chdir)
-- [os.getcwd()](http://docs.python.org/2/library/os.html#os.getcwd)
-- [os.listdir(path)](http://docs.python.org/2/library/os.html#os.listdir)
-- [os.path.abspath(path)](http://docs.python.org/2/library/os.path.html#os.path.abspath)
-- [os.path.basename(path)](http://docs.python.org/2/library/os.path.html#os.path.basename)
-- [os.path.dirname(path)](http://docs.python.org/2/library/os.path.html#os.path.dirname)
-- [os.path.isfile(path)](http://docs.python.org/2/library/os.path.html#os.path.isfile)
-- [os.path.isdir(path)](http://docs.python.org/2/library/os.path.html#os.path.isdir)
-- [os.path.join(path1[, path2[, ...]])](http://docs.python.org/2/library/os.path.html#os.path.join)
-- [os.path.normpath(path)](http://docs.python.org/2/library/os.path.html#os.path.normpath)
-- [os.path.relpath(path[, start])](http://docs.python.org/2/library/os.path.html#os.path.relpath)
-- [os.path.split(path)](http://docs.python.org/2/library/os.path.html#os.path.split)
+- [`os.chdir(path)`](http://docs.python.org/2/library/os.html#os.chdir)
+- [`os.getcwd()`](http://docs.python.org/2/library/os.html#os.getcwd)
+- [`os.listdir(path)`](http://docs.python.org/2/library/os.html#os.listdir)
+- [`os.path.abspath(path)`](http://docs.python.org/2/library/os.path.html#os.path.abspath)
+- [`os.path.basename(path)`](http://docs.python.org/2/library/os.path.html#os.path.basename)
+- [`os.path.dirname(path)`](http://docs.python.org/2/library/os.path.html#os.path.dirname)
+- [`os.path.isfile(path)`](http://docs.python.org/2/library/os.path.html#os.path.isfile)
+- [`os.path.isdir(path)`](http://docs.python.org/2/library/os.path.html#os.path.isdir)
+- [`os.path.join(path1[, path2[, ...]])`](http://docs.python.org/2/library/os.path.html#os.path.join)
+- [`os.path.normpath(path)`](http://docs.python.org/2/library/os.path.html#os.path.normpath)
+- [`os.path.relpath(path[, start])`](http://docs.python.org/2/library/os.path.html#os.path.relpath)
+- [`os.path.split(path)`](http://docs.python.org/2/library/os.path.html#os.path.split)
 
 Now we have everything we need to write our recursive
 directory-printing function in `find.py`. It should take the name of
@@ -217,4 +217,154 @@ implementation below:
         if os.path.isdir(full_path):
             for name in os.listdir(full_path):
                 visit(name, full_path)
+</div>
+
+## Chapter 6: Actually finding things with `find`
+
+Now that our PyFind program is able to look at all the files and
+directories in a directory tree, we can add the ability to print out
+only the paths that meet criteria specified on the command line. One
+of the simplest criteria is _type_, i.e., does the path represent a
+file or a directory?
+
+We can use the functions `os.path.isfile(path)` and
+`os.path.isdir(path)` to detect whether a path is a file or a
+directory. It's a little less clear how we might modify our recursive
+directory tree function to use these functions to only print files or
+directories. One approach would be to create two new recursive
+functions:
+
+    def visit_files(file_name, base_path=""):
+        full_path = os.path.join(base_path, file_name)
+        if os.path.isfile(full_path):
+            print full_path
+        if os.path.isdir(full_path):
+            for name in os.listdir(full_path):
+                visit_files(name, full_path)
+
+    def visit_directories(file_name, base_path=""):
+        full_path = os.path.join(base_path, file_name)
+        if os.path.isdir(full_path):
+            print full_path
+        if os.path.isdir(full_path):
+            for name in os.listdir(full_path):
+                visit_directories(name, full_path)
+
+This is not a maintainable solution. Most of the code in these
+functions is the same, so if we ever want to modify the way in which
+we visit the directories, we will have to remember to change it in
+both functions. What if we could combine these two functions into a
+single one that does the same thing, if given the right arguments? It
+turns out that we can, although it might be difficult to see at first.
+
+The process of combining similar pieces of code together into a single
+more general piece of code is called _abstraction_. Usually, creating
+an abstraction involves these steps:
+
+1. Identify the common parts between the pieces of code being combined
+2. The remaining parts are what is different between the pieces of
+code
+3. Replace each different part with a variable name
+4. Wrap the code in a function that has the variable as a parameter
+   (or if the pieces of code are already functions, just add a new
+   parameter to them)
+
+Try to follow these steps and combine the `visit_files` and
+`visit_directories` functions into a single `visit_matching`
+function. See below for a hint and the solution.
+
+Hint:
+<div class="spoilers">
+The `visit_matching` function will need to take a function as an
+argument.
+</div>
+
+Solution:
+<div class="spoilers">
+
+    def visit_matching(file_name, matches, base_path=""):
+        full_path = os.path.join(base_path, file_name)
+        if matches(full_path):
+            print full_path
+        if os.path.isdir(full_path):
+            for name in os.listdir(full_path):
+                visit_matching(name, matches, full_path)
+</div>
+
+With our new abstraction, we can search for files using
+
+    visit_matching('files', os.path.isfile)
+
+and search for directories using
+
+    visit_matching('files', os.path.isdir)
+
+However, our original `visit` function is almost identical to
+`visit_matching`. Try to figure out what matching function we should
+pass to `visit_matching` to make it do the same thing as
+`visit`. Answer below.
+
+<div class="spoilers">
+
+    visit_matching('files', lambda path: True)
+</div>
+
+Now we can replace the call to our original recursive directory
+function in `find.py` with a call to `visit_matching`. However, we
+still need give PyFind users the ability to filter by file type from
+the command line. This means we need to improve our `argparse` code.
+
+Here's how to get the Unix `find` command to list files only and
+directories only, respectively:
+
+    $ find files -type f
+    $ find files -type d
+
+This is an example of an _optional argument_, so called because you do
+not need to specify it. The optional argument has its own argument
+that indicates which type we want to find. We can add the following
+line to our `argparse` code in `find.py` to get this working for
+PyFind:
+
+    parser.add_argument("-type", help="filter by type", choices=['d', 'f'])
+
+If you parse the arguments as `args = parser.parse_args()`, then the
+argument to the `-type` option will be available as
+`args.type`. Modify your code so that `-type f` and `-type d` behave
+in the same way as they do for the Unix `find` command. Test your code
+using `diff` as before, and try passing invalid arguments to see what
+error messages you get.
+
+After this chapter, here's an example of what your `find.py` file
+should contain:
+
+<div class="spoilers">
+
+    import argparse
+    import os
+
+    def main():
+        parser = argparse.ArgumentParser(description="Find files")
+        parser.add_argument("directory", help="the directory to search")
+        parser.add_argument("-type", help="filter by type", choices=['d', 'f'])
+        args = parser.parse_args()
+
+        matching = lambda path: True
+        if args.type == 'f':
+            matching = os.path.isfile
+        elif args.type == 'd':
+            matching = os.path.isdir
+
+        visit_matching(args.directory, matching)
+
+    def visit_matching(file_name, matches, base_path=""):
+        full_path = os.path.join(base_path, file_name)
+        if matches(full_path):
+            print full_path
+        if os.path.isdir(full_path):
+            for name in os.listdir(full_path):
+                visit_matching(name, matches, full_path)
+
+    if __name__ == '__main__':
+        main()
 </div>
