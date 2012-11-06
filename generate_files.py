@@ -1,5 +1,10 @@
 import random
 import os
+import time
+import datetime
+
+SECONDS = datetime.timedelta(days=1000).total_seconds()
+NOW = int(time.time())
 
 def main():
     FileGenerator(load_words()).generate('files').create()
@@ -26,12 +31,19 @@ class File(object):
         self.name = name
 
     def create(self, basedir=None):
-        os.mknod(self.make_path(basedir))
+        path = self.make_path(basedir)
+        os.mknod(path)
+        File.change_time(path)
 
     def make_path(self, basedir):
         if basedir is None:
             return self.name
         return os.path.join(basedir, self.name)
+
+    @classmethod
+    def change_time(cls, path):
+        new_time = NOW + random.randint(-SECONDS, SECONDS)
+        os.utime(path, (new_time, new_time))
 
 class Directory(File):
     
@@ -44,6 +56,7 @@ class Directory(File):
         os.mkdir(path)
         for child in self.children:
             child.create(path)
+        File.change_time(path)
 
 if __name__ == '__main__':
     main()
