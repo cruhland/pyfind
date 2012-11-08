@@ -368,3 +368,79 @@ should contain:
     if __name__ == '__main__':
         main()
 </div>
+
+## Chapter 7: Filtering with the `datetime` module
+
+The Unix `find` command also allows searching files by their
+modification time. Unfortunately it's not very flexible: you can only
+specify time in increments of minutes or days. We can do better using
+the Python `datetime` module.
+
+Let's start by implementing a new command-line argument,
+`-m_before DATETIME`. This will cause PyFind to only return files or
+directories that were modified before the given date and time. Let's
+add the argument to our parser:
+
+    parser.add_argument("-m_before", help="filter before the given date and time")
+
+We then need to handle that argument if it is provided by the user. We
+can just add another branch to our `if` statement:
+
+    elif args.m_before:
+        matching = modified_before(args.m_before)
+
+With the above code, we first check if the `m_before` argument was
+provided by the user. If it was, we call the function
+`modified_before` (which we haven't written yet) with the value of the
+`m_before` argument (which is hopefully a string representing a date
+and time). The `modified_before` function then _returns another
+function_ which becomes our `matching` function.
+
+Time to write our `modified_before` function. This takes a date and
+time formatted as a string, and returns a matching function that when
+given a filesystem path, returns `True` if the item at that path was
+modified before the given date and time, and `False` otherwise. A
+high-level view of the code is the following:
+
+    def modified_before(datetime_str):
+        # Convert datetime_str to a reference datetime object
+
+        def matching(path):
+            # Get the modification timestamp of the item at path
+            # Convert the modification timestamp to datetime
+            # Compare the modification datetime to the reference
+            # If the modification timestamp is earlier, return True
+            # Otherwise, return False
+
+        return matching
+
+To fill in the comments with Python code, you will probably find the
+following methods useful, be sure to read their documentation:
+
+- `datetime.datetime.strptime(date_string, format)`
+- `datetime.datetime.fromtimestamp(timestamp)`
+- The `<` operation on `datetime` objects
+- `os.path.getmtime(path)`
+
+Once you think you've implemented `modified_before`, you should test
+it out on the terminal with the `files` directory to see if it
+works. The files will have random modification times, just run `ls -l`
+to see them. Then run PyFind using the new `-m_before` argument with
+the date and time you want to check for. Reveal the code below to
+verify your implementation:
+
+<div class="spoilers">
+
+    def modified_before(datetime_str):
+        reference_datetime = datetime.datetime.strptime(datetime_str, '%b %d %Y %I:%M:%S %p')
+
+        def matching(path):
+            modification_timestamp = os.path.getmtime(path)
+            modification_datetime = datetime.datetime.fromtimestamp(modification_timestamp)
+            return modification_datetime < reference_datetime
+
+        return matching
+</div>
+
+Now that `-m_before` is working, implement the opposite argument,
+`-m_after`.
