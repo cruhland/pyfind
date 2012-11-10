@@ -259,5 +259,54 @@ if __name__ == &#39;__main__&#39;:
 </div>
 
 <p>Now that <code>-m_before</code> is working, implement the opposite argument, <code>-m_after</code>.</p>
+<h2 id="chapter-8-more-datetime-filtering">Chapter 8: More <code>datetime</code> filtering</h2>
+<p>Sometimes we want to find files modified in a particular month, but not necessarily in the same year. Or maybe we know the hour at which we modified a file, but don't remember the day. In this chapter we'll implement this kind filtering in PyFind.</p>
+<p>The command-line argument format we'll use looks like the following example:</p>
+<pre><code>python find.py files -m_in month=07,hour=20</code></pre>
+<p>This gives all files modified in hour 20 (between 8 pm and 9 pm) of any day in July. Notice we have a new command-line switch, <code>-m_in</code>, and a new format for specifying date and time components as key-value pairs.</p>
+<p>Your goal for this chapter is to add this new feature to PyFind on your own, using what we've covered so far. One hint is that you will find the <a href="http://docs.python.org/2/library/datetime.html#datetime.datetime"><code>datetime.datetime</code> constructor</a> useful. Peek at the hints below if you get stuck:</p>
+Parser setup:
+<div class="spoilers">
+
+<pre><code>parser.add_argument(&quot;-m_in&quot;, help=&quot;select files with the given &quot;
+                             &quot;values in their modification times&quot;)</code></pre>
+</div>
+
+Matching function selection:
+<div class="spoilers">
+
+<pre><code>elif args.m_in:
+    matching = modified_in(args.m_in)</code></pre>
+</div>
+
+Matching function definition:
+<div class="spoilers">
+
+<pre><code>def modified_in(datetime_arg_str):
+    datetime_values = {}
+    for arg in datetime_arg_str.split(&#39;,&#39;):
+        attr, value_str = arg.split(&#39;=&#39;)
+        datetime_values[attr] = int(value_str)
+
+    def matching(path):
+        modification_timestamp = os.path.getmtime(path)
+        modification_datetime = \
+            datetime.datetime.fromtimestamp(modification_timestamp)
+        for attr, value in datetime_values.items():
+            if getattr(modification_datetime, attr) != value:
+                return False
+        return True
+    return matching</code></pre>
+</div>
+
+<h2 id="chapter-9-conclusion">Chapter 9: Conclusion</h2>
+<p>There are many more features that can be added to PyFind, if you're looking for more challenges. Some ideas:</p>
+<ul>
+<li>Use the <code>datetime.timedelta</code> class with <code>-m_before</code> and <code>-m_after</code> to allow relative time boundaries. For example, <code>-m_after days=-3</code> would find all files modified later than three days ago.</li>
+<li>Combine filters together using <code>-and</code> and <code>-or</code> arguments, for example <code>-type d -and -m_in year=2012</code> to find all directories modified in 2012.</li>
+<li>Introduce <code>-size_below</code> and <code>-size_above</code> arguments for filtering by file size. Use the <a href="http://docs.python.org/2/library/os.path.html#os.path.getsize"><code>os.path.getsize(path)</code> function</a> to get the size of a file.</li>
+<li>Introduce the <code>-regex</code> argument for filtering file names by regex.</li>
+<li>You can also run <code>man find</code> and read the documentation for the Unix <code>find</code> command to get more ideas.</li>
+</ul>
 </body>
 </html>
